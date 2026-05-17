@@ -8,4 +8,4 @@ A python and HTML/CSS application that screenshots your screen to calculate if t
 After installing **Tesseract-OCR,** you should be able to download the executable file, and run it. Alternatively, you can download the source code, install all the python packages required, and * *then* * you will be able to edit the code, run, and recompile it to your liking.
 
 ## Exiting Application
-Make sure that you close the application by pressing **Ctrl+C** inside of the terminal, otherwise the process will continure to run in the background, not that it will eat resources, but it will keep runnng.
+Make sure that you close the application by pressing **Ctrl+C** inside of the terminal, otherwise the process will continure to run in the background, not that it will eat resources, but it will keep runnng. This is a bug, and I will fix it eventually.
