@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>CS2 Terminal</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet"/>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  html, body {
+    width: 400px;
+    background: #172a7e;
+    font-family: 'Nunito', sans-serif;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  .card {
+    background: #172a7e;
+    border-radius: 0;
+    padding: 14px 18px 12px;
+    width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  }
+
+  .skin-title {
+    font-size: 0.95rem;
+    font-weight: 900;
+    color: #e8e8e8;
+    text-align: center;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .prices {
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+    align-items: center;
+  }
+
+  .price-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .price-label {
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: rgb(232 232 232);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .price-value {
+    font-size: 1.3rem;
+    font-weight: 900;
+    line-height: 1;
+  }
+  .price-value.green { color: #3ddd3d; }
+  .price-value.red   { color: #e83a3a; }
+
+  .divider {
+    width: 1px;
+    height: 44px;
+    background: rgba(0,0,0,0.3);
+  }
+
+  .equation {
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .deal-banner {
+    border-radius: 50px;
+    padding: 6px 14px;
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    border: 2px solid transparent;
+    transition: background 0.3s, border-color 0.3s;
+  }
+  .deal-banner.good    { background:#3daa5c; border-color:#2a7a40; color:#fff; }
+  .deal-banner.bad     { background:#c0394b; border-color:#8a1a2a; color:#fff; }
+  .deal-banner.neutral { background:rgba(0,0,0,0.25); border-color:rgba(0,0,0,0.1); color:#fff; }
+
+  @keyframes blink { from{opacity:0.3} to{opacity:1} }
+  .pulse { animation: blink 1s infinite alternate; }
+</style>
+</head>
+<body>
+<div class="card" id="card">
+
+  <div class="skin-title" id="skin-title">Waiting for scan…</div>
+
+  <div class="prices">
+    <div class="price-col">
+      <span class="price-label">Market Price</span>
+      <span class="price-value green" id="market-price">—</span>
+    </div>
+    <div class="divider"></div>
+    <div class="price-col">
+      <span class="price-label">Terminal Offer</span>
+      <span class="price-value red" id="offered-price">—</span>
+    </div>
+  </div>
+
+  <div class="equation" id="equation" style="color:rgba(0,0,0,0.4)">—</div>
+  <div class="deal-banner neutral" id="deal-banner">Press F6 to scan</div>
+
+</div>
+
+<script>
+  // Fade whole window via pywebview JS API
+  document.addEventListener("mouseenter", () => {
+    if (window.pywebview) pywebview.api.fade_in();
+  });
+  document.addEventListener("mouseleave", () => {
+    if (window.pywebview) pywebview.api.fade_out();
+  });
+
+  async function poll() {
+    try {
+      const res = await fetch("/data");
+      const d   = await res.json();
+
+      const market  = parseFloat(d.market_price);
+      const offered = parseFloat(d.offered_price);
+
+      if (d.name && d.name !== "—")
+        document.getElementById("skin-title").textContent =
+          d.name + (d.wear && d.wear !== "—" ? ` (${d.wear})` : "");
+
+      document.getElementById("market-price").textContent  = isNaN(market)  ? "—" : "$" + market.toFixed(2);
+      document.getElementById("offered-price").textContent = isNaN(offered) ? "—" : "$" + offered.toFixed(2);
+
+      const banner = document.getElementById("deal-banner");
+      const eq     = document.getElementById("equation");
+
+      if (!isNaN(market) && !isNaN(offered)) {
+        const diff = market - offered;
+        const pct  = ((diff / offered) * 100).toFixed(1);
+        const gc = "#3ddd3d", rc = "#e83a3a";
+
+        eq.innerHTML =
+          `<span style="color:${gc}">$${market.toFixed(2)}</span> - ` +
+          `<span style="color:${rc}">$${offered.toFixed(2)}</span> = ` +
+          `<span style="color:${diff>=0?gc:rc}">${diff>=0?"+":""}$${diff.toFixed(2)}</span>`;
+
+        banner.textContent = diff > 0 ? `Good Deal +${pct}%` : diff < 0 ? `Bad Deal ${pct}%` : "Break Even";
+        banner.className   = "deal-banner " + (diff > 0 ? "good" : diff < 0 ? "bad" : "neutral");
+        banner.classList.remove("pulse");
+
+      } else if (d.status === "scanning") {
+        banner.textContent = "Scanning…";
+        banner.className = "deal-banner neutral pulse";
+      }
+
+    } catch(e) {}
+  }
+
+  setInterval(poll, 800);
+  poll();
+</script>
+</body>
+</html>
